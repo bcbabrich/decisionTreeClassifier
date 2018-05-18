@@ -1,0 +1,35 @@
+#the first thing we need to to is read in our data file and transform it into a 2d-array
+dataFile = open('courseRatings.data','r')
+
+dataArray = []
+
+for line in dataFile :
+    dataArray.append(line.split(','))
+
+# note that at this point EOL chars are still present
+# right now, feature f is just the first feature
+
+categories = [] # this is all the different values feature f can have
+
+# grab all the categories for feature f
+
+for j in range(len(dataArray[0]) - 2) :
+    for i in range(len(dataArray)) :
+        #print(dataArray[i][0])
+        if dataArray[i][j] not in categories :
+            categories.append(dataArray[i][j])
+
+    corGuess = 0
+
+    for c in categories :
+        cTot = 0
+        tempCorGuess = 0
+        for i in range(len(dataArray)) :
+            if dataArray[i][j] == c :
+                cTot += 1
+                if dataArray[i][len(dataArray[0]) - 1].rstrip() == 'l' :
+                    tempCorGuess += 1
+        if cTot - tempCorGuess > tempCorGuess :
+            tempCorGuess = cTot - tempCorGuess
+        corGuess += tempCorGuess
+    print('score: ' +  str(corGuess/len(dataArray)))
