@@ -1,11 +1,24 @@
 # import anytree so we can "train" our decision tree
 from anytree import Node, RenderTree
 
+# RETURN BOOL FOR EXISTENCE OF DISAMBIGUITY
+# IN: a data array and a list of labels
+# OUT: a boolean corresponding to existence of disambiguiies
+def unAmbig(dataArray, labels) :
+    for l in labels :
+        unAmbig = True
+        for i in range(len(dataArray)) :
+            if dataArray[i][len(dataArray[0]) - 1].rstrip() != l :
+                unAmbig = False
+        if unAmbig :
+            return l
+    return 'NULL'
+
 # RETURN FEATURE WITH HIGHEST "SCORE"
 # IN: features, categories, and labels (AS LISTS)
 # OUT: the index of the category with the highest "score"
 # -> "score" is defined by Daume in Decision trees
-def featureWithHighestScore(features, labels) :
+def featureWithHighestScore(dataArray, features, labels) :
     highestScore = 0
     featWHighestScore = 0
     for f in features :
@@ -22,7 +35,6 @@ def featureWithHighestScore(features, labels) :
         # and save the highest count
         for c in categories :
             highestNumOfCorGuesses = 0
-            highestCorPerc = 0
             for l in labels :
                 cTot = 0
                 tempCorGuess = 0
@@ -34,7 +46,7 @@ def featureWithHighestScore(features, labels) :
 
                 if tempCorGuess > highestNumOfCorGuesses :
                     highestNumOfCorGuesses = tempCorGuess
-                    
+
             # once the highest count has been found for category c,
             # add it to a total tally 
             corGuess += highestNumOfCorGuesses
@@ -45,9 +57,45 @@ def featureWithHighestScore(features, labels) :
         if corGuess/len(dataArray) > highestScore :
             highestScore = corGuess/len(dataArray)
             featWHighestScore = f
-    print('feat with highest score: ' + str(featWHighestScore))
     return featWHighestScore
 
+# TRAIN DECISION TREE
+# IN: a dataArray, features, and labels, all as lists
+# OUT: nothing, right now... will aid in the building of a tree
+def trainDecisionTree(dataArray, features, labels) :
+    if len(features) != 0 and unAmbig(dataArray, labels) == 'NULL' :
+
+        # grab feature with highest score
+        featWHighestScore = featureWithHighestScore(dataArray, features, labels)
+
+        # Feature with highest score has been found (call if f')
+        print('feat with highest score: ' + str(featWHighestScore))
+
+        # we now create a new features list with f' removed
+        newFeatures = features
+        newFeatures.remove(featWHighestScore)
+
+        # now we split up dataArray into subsets based on the categories of f'
+        # and call this method on that new dataArray
+
+        categories = [] # all the different values featWHighestScore can have 
+        for i in range(len(dataArray)) :
+            if dataArray[i][featWHighestScore] not in categories :
+                categories.append(dataArray[i][featWHighestScore])
+
+        for c in categories :
+            dataArrayOfC = []
+            for i in range(len(dataArray)):
+                if dataArray[i][featWHighestScore] == c :
+                    dataArrayOfC.append(dataArray[i])
+                    print(dataArray[i])
+            trainDecisionTree(dataArrayOfC, newFeatures, labels) # recursive call!
+            print('////////////////')
+    else :
+        print('base case')
+        print(len(features))
+        print(unAmbig(dataArray, labels))
+        
 ################## CONTROL FLOW BEGINS HERE ########################
     
 #the first thing we need to to is read in our data file and transform it into a 2d-array
@@ -68,30 +116,8 @@ for i in range(len(dataArray)) :
     if dataArray[i][len(dataArray[0]) - 1].rstrip() not in labels :
         labels.append(dataArray[i][len(dataArray[0]) - 1].rstrip())
 
-featWHighestScore = featureWithHighestScore(features, labels) # initial first call
- 
-# Feature with highest score has been found (call if f')
+################# TREE BUILDING STARTS HERE ########################
 
-# we now create a new features list with f' removed
-newFeatures = features
-newFeatures.remove(featWHighestScore)
-#print(newFeatures)
+trainDecisionTree(dataArray, features, labels)
 
-# now we split up dataArray into subsets based on the categories of f'
 
-categories = [] # all the different values featWHighestScore can have 
-for i in range(len(dataArray)) :
-    if dataArray[i][featWHighestScore] not in categories :
-        categories.append(dataArray[i][featWHighestScore])
-
-#print(categories)
-#print(featWHighestScore)
-
-for c in categories :
-    dataArrayOfC = []
-    for i in range(len(dataArray)):
-        if dataArray[i][featWHighestScore] == c :
-            dataArrayOfC.append(dataArray[i])
-            print(dataArray[i])
-    #print(dataArrayOfC)
-    print('////////////////')
