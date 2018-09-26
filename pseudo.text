@@ -1,9 +1,0 @@
-for f in features:
-    for c in categories(f):
-    	for e in  examples(c):
-	    if v(c) = 1:
-	       corGuess += 1
-	    cCount += 1
-	tempHitCount = corGuess/cCount
-	if tempHitCount > curHitCount:
-	   curHitCount = tempHitCount
