@@ -1,4 +1,4 @@
-#!/usr/bin/python3.6
+#!/usr/bin/python
 
 # Berett Chase Babrich
 # Decision Tree Classifier
@@ -30,7 +30,8 @@ for line in data_file :
 data_file.close()
 
 # grab label and feature values
-feature_vals = [[]] * len(data[1])
+num_features = len(data[1])
+feature_vals = [[]] * num_features
 label_vals = []
 for example in data :
 	# grab (possibly new) feature values for each feature in example
@@ -41,26 +42,34 @@ for example in data :
 	if example[-1] not in label_vals :
 		label_vals.append(example[-1])
 
-# create histogram matrix
-# the '0' will eventually be replaced with an iterator
-hist_mat = np.zeros((len(label_vals), len(feature_vals[0])))
-for example in data :
-	label_val = example[-1]
-	feat_val = example[0]
-	hist_mat[feature_vals[0].index(feat_val)][label_vals.index(label_val)] += 1
-print(hist_mat)
-print('numpy array of argmax',np.argmax(hist_mat, axis=1))
-argmax_arr = np.argmax(hist_mat, axis=1)
-print('arange',np.arange(hist_mat.shape[0]))
-arange_arr = np.arange(hist_mat.shape[0])
-print(hist_mat[arange_arr, argmax_arr])
-print(np.sum(hist_mat[arange_arr, argmax_arr]))
-print('------')
+# calculate feature with highest score
+highest_score = 0
+f_w_highest_score = None
+for feature in range(num_features - 1) : # last column is label, not feature
+	# create histogram matrix for current feature
+	hist_mat = np.zeros((len(label_vals), len(feature_vals[feature])))
+	
+	# populate the histogram by 
+	for example in data :
+		label_val = example[-1]
+		feat_val = example[feature]
+		hist_mat[feature_vals[feature].index(feat_val)][label_vals.index(label_val)] += 1
+	
+	# sum up the highest value from each label row
+	# equivalent to saying "how many would we get right
+	# if we always took the most frequent value"
+	argmax_arr = np.argmax(hist_mat, axis=1)
+	arange_arr = np.arange(len(label_vals))
+	score_numerator = np.sum(hist_mat[arange_arr, argmax_arr])
+	
+	# calculate score for current feature
+	score_denominator = len(data)
+	score = score_numerator / score_denominator
+	print('score for feature ' + str(feature) + ': ' + str(score))
+	
+	# update highest score and corresponding feature
+	if score > highest_score : 
+		highest_score = score
+		f_w_highest_score = feature
 
-test_mat = np.array([[1,5,2],[7,1,3],[8,9,10]])
-print(test_mat)
-print('numpy array of argmax',np.argmax(test_mat, axis=1))
-argmax_arr = np.argmax(test_mat, axis=1)
-print('arange',np.arange(test_mat.shape[0]))
-arange_arr = np.arange(test_mat.shape[0])
-print(np.sum(test_mat[arange_arr, argmax_arr]))
+print('feature with the highest score is : ' + str(f_w_highest_score))
