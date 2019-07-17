@@ -40,18 +40,19 @@ for example in data :
 	# grab (possibly new) label values from example
 	if example[-1] not in label_vals :
 		label_vals.append(example[-1])
-print(feature_vals)
-print(label_vals)
 
 # create histogram matrix
-hist_mat = np.zeros((2,2))
-print(hist_mat)
+# the '0' will eventually be replaced with an iterator
+hist_mat = np.zeros((len(label_vals), len(feature_vals[0])))
 for example in data :
-	label = example[-1]
+	label_val = example[-1]
 	feat_val = example[0]
-	'''
-	if label == 'l' :
-		print('like')
-	elif label == 'd' :
-		print('dislike')
-	'''
+	hist_mat[feature_vals[0].index(feat_val)][label_vals.index(label_val)] += 1
+print(hist_mat)
+print(np.argmax(hist_mat, axis=1))
+print(np.arange(hist_mat.shape[0]))
+indices_of_max = np.stack((np.arange(hist_mat.shape[0]), np.argmax(hist_mat, axis=1)), axis=-1)
+tuple_indices = tuple(map(tuple, indices_of_max))
+print(tuple(map(tuple, indices_of_max)))
+print(hist_mat[(1,0)])
+print(np.sum(hist_mat[tuple(indices_of_max)]))
