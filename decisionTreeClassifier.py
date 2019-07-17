@@ -2,7 +2,7 @@
 
 # Berett Chase Babrich
 # Decision Tree Classifier
-# Last updated 7.16.19
+# Last updated 7.17.19
 
 # imports
 import re
@@ -49,10 +49,18 @@ for example in data :
 	feat_val = example[0]
 	hist_mat[feature_vals[0].index(feat_val)][label_vals.index(label_val)] += 1
 print(hist_mat)
-print(np.argmax(hist_mat, axis=1))
-print(np.arange(hist_mat.shape[0]))
-indices_of_max = np.stack((np.arange(hist_mat.shape[0]), np.argmax(hist_mat, axis=1)), axis=-1)
-tuple_indices = tuple(map(tuple, indices_of_max))
-print(tuple(map(tuple, indices_of_max)))
-print(hist_mat[(1,0)])
-print(np.sum(hist_mat[tuple(indices_of_max)]))
+print('numpy array of argmax',np.argmax(hist_mat, axis=1))
+argmax_arr = np.argmax(hist_mat, axis=1)
+print('arange',np.arange(hist_mat.shape[0]))
+arange_arr = np.arange(hist_mat.shape[0])
+print(hist_mat[arange_arr, argmax_arr])
+print(np.sum(hist_mat[arange_arr, argmax_arr]))
+print('------')
+
+test_mat = np.array([[1,5,2],[7,1,3],[8,9,10]])
+print(test_mat)
+print('numpy array of argmax',np.argmax(test_mat, axis=1))
+argmax_arr = np.argmax(test_mat, axis=1)
+print('arange',np.arange(test_mat.shape[0]))
+arange_arr = np.arange(test_mat.shape[0])
+print(np.sum(test_mat[arange_arr, argmax_arr]))
