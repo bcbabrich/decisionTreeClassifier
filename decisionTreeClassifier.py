@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3.6
 
 # Berett Chase Babrich
 # Decision Tree Classifier
@@ -67,6 +67,7 @@ for line in data_file :
 		data_line = split_line
 	data.append(data_line)
 data_file.close()
+data = np.asarray(data) # convert to numpy array
 
 # grab label and feature values
 num_features = len(data[1])
@@ -88,10 +89,8 @@ print('best feature to split on at root: ' + str(best_feat))
 # to use numpy.split, we need the indices of each feature value
 feats_to_split_on = feature_vals[best_feat]
 f = feats_to_split_on[0]
-print(feats_to_split_on[0])
-print(data[0][best_feat])
-sub_arr = [i for i in range(len(data)) if data[i][best_feat] == f]
-print(sub_arr)
-
-
-
+for f in feats_to_split_on :
+	sub_arr = [i for i in range(len(data)) if data[i][best_feat] == f]
+	print(sub_arr)
+	print(data[sub_arr])
+	print('///')
