@@ -1,8 +1,8 @@
-#!/usr/bin/python3.6
+#!/usr/bin/python
 
 # Berett Chase Babrich
 # Decision Tree Classifier
-# Last updated 7.17.19
+# Last updated 7.18.19
 
 # NOTES :
 # A homebrewed decision tree classifier based on Daume's first chapter of "machine learning"
@@ -23,11 +23,14 @@ import numpy as np
 # each column except the last is a feature
 # every example has the same number of features
 # the last column is a label
-def get_best_feat(data, num_features, feature_vals, label_vals) :
+def get_best_feat(data) :
 	# calculate feature with highest score
 	# ?? could this be written entirely without for loops ??
 	highest_score = 0
 	f_w_highest_score = None
+	
+	# in order to check for leaf cases, we need to store all feature scores
+	feat_scores = []
 	for feature in range(num_features - 1) : # last column is label, not feature
 		# create histogram matrix for current feature
 		hist_mat = np.zeros((len(label_vals), len(feature_vals[feature])))
@@ -48,14 +51,55 @@ def get_best_feat(data, num_features, feature_vals, label_vals) :
 		# calculate score for current feature
 		score_denominator = len(data)
 		score = score_numerator / score_denominator
+		feat_scores.append(score)
+	
+	# test print
+	print('feature scores:',feat_scores)
+	
+	# check for leaves and return index of highest score if conditions not met
+	isLeaf = False
+	if all(elem == feat_scores[0] for elem in feat_scores) : # all scores are equal
+		# pick the first feature
+		# this should be randomized in the future
+		best_feat = 0
+		isLeaf = True
+	elif any(elem == 1.0 for elem in feat_scores ) : # any score is 1
+		# might need to be careful about doubles vs ints here?
+		best_feat = feat_scores.index(1.0)
+		isLeaf = True
+	else : # leaf conditions not met, take index of greatest score
+		best_feat = feat_scores.index(max(feat_scores))
+	
+	return best_feat, isLeaf
 
-		# update highest score and corresponding feature
-		if score > highest_score : 
-			highest_score = score
-			f_w_highest_score = feature
+#### SPLITTING DATA 
+# IN: A list of lists (unsplit data), an int (feature to split data on)
+# OUT: A list of lists of lists (several data lists)
+def performSplitOn(data, feat) :
+	# perform split
+	# to use numpy.split, we need the indices of each feature value
+	splits = []
+	for f in feature_vals[feat] :
+		sub_arr = [i for i in range(len(data)) if data[i][feat] == f]
+		splits.append(data[sub_arr])
+	return splits
 
-	return f_w_highest_score
+#### TRAIN DECISION TREE
+# c is for counting recursive steps
+def trainDecisionTreeOn(data, c) :
+	print('c',c)
+	c += 1
+	print(data)
+	while c < 10 :
+		best_feat, isLeaf = get_best_feat(data)
+		splits = performSplitOn(data, best_feat)
+		for split in splits : 
+			c = trainDecisionTreeOn(split, c) # recursive step
+	return c
 
+######################################################
+################## MAIN CONTROL STARTS HERE ##########
+######################################################
 # load the file into 2d array
 data_file = open('courseRatings.data')
 data = []
@@ -82,15 +126,7 @@ for example in data :
 	if example[-1] not in label_vals :
 		label_vals.append(example[-1])
 
-best_feat = get_best_feat(data, num_features, feature_vals, label_vals)
-print('best feature to split on at root: ' + str(best_feat))
+# here we go...
+trainDecisionTreeOn(data, 0)
 
-# perform split
-# to use numpy.split, we need the indices of each feature value
-feats_to_split_on = feature_vals[best_feat]
-f = feats_to_split_on[0]
-for f in feats_to_split_on :
-	sub_arr = [i for i in range(len(data)) if data[i][best_feat] == f]
-	print(sub_arr)
-	print(data[sub_arr])
-	print('///')
+print(splits)
