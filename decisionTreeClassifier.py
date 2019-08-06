@@ -11,6 +11,9 @@
 # imports
 import re
 import numpy as np
+import random
+import statistics
+from statistics import mode
 
 ### TO-DO
 # +++ read through data once to grab num_features, num_labels
@@ -23,7 +26,21 @@ import numpy as np
 # each column except the last is a feature
 # every example has the same number of features
 # the last column is a label
-def get_best_feat(data) :
+def get_best_feat(data, feats) :
+	# TODO: guess the most prevalent answer instead of random here
+	# we also do not need to return feats here
+	if len(data) == 0 :
+		print('empty data. Randomly guessing')
+		guess = random.choice(label_vals)
+		print('Guess:',guess)
+		return 0, True, []
+	elif len(feats) == 0 :
+		print('no features left. Randomly guessing')
+		guess = random.choice(label_vals)
+		print('Guess:',guess)
+		return 0, True, []
+	
+	
 	# calculate feature with highest score
 	# ?? could this be written entirely without for loops ??
 	highest_score = 0
@@ -31,51 +48,69 @@ def get_best_feat(data) :
 	
 	# in order to check for leaf cases, we need to store all feature scores
 	feat_scores = []
-	for feature in range(num_features - 1) : # last column is label, not feature
-		# create histogram matrix for current feature
-		hist_mat = np.zeros((len(label_vals), len(feature_vals[feature])))
+	for feature in range(num_features) : # last column is label, not feature
+		if feature in feats :
+			# create histogram matrix for current feature
+			hist_mat = np.zeros((len(label_vals), len(feature_vals[feature])))
 
-		# populate the histogram by 
-		for example in data :
-			label_val = example[-1]
-			feat_val = example[feature]
-			hist_mat[feature_vals[feature].index(feat_val)][label_vals.index(label_val)] += 1
+			# populate the histogram by 
+			for example in data :
+				label_val = example[-1]
+				feat_val = example[feature]
+				hist_mat[feature_vals[feature].index(feat_val)][label_vals.index(label_val)] += 1
 
-		# sum up the highest value from each label row
-		# equivalent to saying "how many would we get right
-		# if we always took the most frequent value"
-		argmax_arr = np.argmax(hist_mat, axis=1)
-		arange_arr = np.arange(len(label_vals))
-		score_numerator = np.sum(hist_mat[arange_arr, argmax_arr])
+			# sum up the highest value from each label row
+			# equivalent to saying "how many would we get right
+			# if we always took the most frequent value"
+			argmax_arr = np.argmax(hist_mat, axis=1)
+			arange_arr = np.arange(len(label_vals))
+			score_numerator = np.sum(hist_mat[arange_arr, argmax_arr])
 
-		# calculate score for current feature
-		score_denominator = len(data)
-		score = score_numerator / score_denominator
-		feat_scores.append(score)
-	
+			# calculate score for current feature
+			score_denominator = len(data)
+			score = score_numerator / score_denominator
+			feat_scores.append(score)
+		else : feat_scores.append(-1)
+
 	# test print
 	print('feature scores:',feat_scores)
-	
-	# check for leaves and return index of highest score if conditions not met
+
+	# check for leaves and special case of all scores being equal
+	# then return highest score
 	isLeaf = False
 	if all(elem == feat_scores[0] for elem in feat_scores) : # all scores are equal
 		# pick the first feature
 		# this should be randomized in the future
 		best_feat = 0
-		isLeaf = True
+		print('all scores equal for this data')
 	elif any(elem == 1.0 for elem in feat_scores ) : # any score is 1
 		# might need to be careful about doubles vs ints here?
+		# note that this takes the index of the first appearance of 1.0
 		best_feat = feat_scores.index(1.0)
 		isLeaf = True
+		'''
+		print('leaf found. Guess: ', best_feat,'////////////')
+		print('hist_mat',hist_mat)
+		print('sum of labels:',np.sum(hist_mat, axis=0))
+		print('label vals:', label_vals)
+		print('most frequent label', label_vals[np.argmax(np.sum(hist_mat, axis=0))])
+		'''
+		print('leaf found. Guess: ', label_vals[np.argmax(np.sum(hist_mat, axis=0))])
+		# need to get most frequent label
+		# this could probably be done in a more elegant way
+		
 	else : # leaf conditions not met, take index of greatest score
 		best_feat = feat_scores.index(max(feat_scores))
+		print('best_feat',best_feat)
+		feats.remove(best_feat)
 	
-	return best_feat, isLeaf
+	return best_feat, isLeaf, feats
 
 #### SPLITTING DATA 
 # IN: A list of lists (unsplit data), an int (feature to split data on)
 # OUT: A list of lists of lists (several data lists)
 def performSplitOn(data, feat) :
+	print('splitting on feature ', feat,'...........')
 	# perform split
 	# to use numpy.split, we need the indices of each feature value
 	splits = []
@@ -86,16 +121,22 @@ def performSplitOn(data, feat) :
 
 #### TRAIN DECISION TREE
 # c is for counting recursive steps
-def trainDecisionTreeOn(data, c) :
-	print('c',c)
-	c += 1
+def trainDecisionTreeOn(data, feats, isLeaf) :
 	print(data)
-	while c < 10 :
-		best_feat, isLeaf = get_best_feat(data)
+	print('features left: ', feats)
+	print('isLeaf:',isLeaf)
+	best_feat, isLeaf, feats = get_best_feat(data, feats[:])
+	if not isLeaf :
 		splits = performSplitOn(data, best_feat)
+		leaves = 0
 		for split in splits : 
-			c = trainDecisionTreeOn(split, c) # recursive step
-	return c
+			isLeaf = trainDecisionTreeOn(split, feats[:], False)
+			
+			if isLeaf : leaves += 1
+			if leaves == len(splits) :
+				print('all leaves taken care of')
+				break
+	return isLeaf
 
 ######################################################
 ################## MAIN CONTROL STARTS HERE ##########
@@ -114,7 +155,7 @@ data_file.close()
 data = np.asarray(data) # convert to numpy array
 
 # grab label and feature values
-num_features = len(data[1])
+num_features = len(data[1]) - 1
 feature_vals = [[]] * num_features
 label_vals = []
 for example in data :
@@ -127,6 +168,5 @@ for example in data :
 		label_vals.append(example[-1])
 
 # here we go...
-trainDecisionTreeOn(data, 0)
-
-print(splits)
+feats = range(num_features) # keep track of which feats have already been used
+isLeaf = trainDecisionTreeOn(data, feats, False)
