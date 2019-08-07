@@ -12,6 +12,7 @@
 import re
 import numpy as np
 import random
+import os, sys, getopt
 import statistics
 from statistics import mode
 
@@ -30,14 +31,14 @@ def get_best_feat(data, feats) :
 	# TODO: guess the most prevalent answer instead of random here
 	# we also do not need to return feats here
 	if len(data) == 0 :
-		print('empty data. Randomly guessing')
+		if print_tables : print('empty data. Randomly guessing')
 		guess = random.choice(label_vals)
-		print('Guess:',guess)
+		if print_tables : print('Guess:',guess)
 		return 0, True, []
 	elif len(feats) == 0 :
-		print('no features left. Randomly guessing')
+		if print_tables : print('no features left. Randomly guessing')
 		guess = random.choice(label_vals)
-		print('Guess:',guess)
+		if print_tables : print('Guess:',guess)
 		return 0, True, []
 	
 	
@@ -73,7 +74,7 @@ def get_best_feat(data, feats) :
 		else : feat_scores.append(-1)
 
 	# test print
-	print('feature scores:',feat_scores)
+	if print_tables : print('feature scores:',feat_scores)
 
 	# check for leaves and special case of all scores being equal
 	# then return highest score
@@ -82,26 +83,22 @@ def get_best_feat(data, feats) :
 		# pick the first feature
 		# this should be randomized in the future
 		best_feat = 0
-		print('all scores equal for this data')
+		
+		# table printing
+		if print_tables : print('all scores equal for this data')
+			
 	elif any(elem == 1.0 for elem in feat_scores ) : # any score is 1
 		# might need to be careful about doubles vs ints here?
 		# note that this takes the index of the first appearance of 1.0
 		best_feat = feat_scores.index(1.0)
 		isLeaf = True
-		'''
-		print('leaf found. Guess: ', best_feat,'////////////')
-		print('hist_mat',hist_mat)
-		print('sum of labels:',np.sum(hist_mat, axis=0))
-		print('label vals:', label_vals)
-		print('most frequent label', label_vals[np.argmax(np.sum(hist_mat, axis=0))])
-		'''
-		print('leaf found. Guess: ', label_vals[np.argmax(np.sum(hist_mat, axis=0))])
-		# need to get most frequent label
-		# this could probably be done in a more elegant way
+		
+		# table printing
+		if print_tables : print('leaf found. Guess: ', label_vals[np.argmax(np.sum(hist_mat, axis=0))])
 		
 	else : # leaf conditions not met, take index of greatest score
 		best_feat = feat_scores.index(max(feat_scores))
-		print('best_feat',best_feat)
+		if print_tables : print('best_feat',best_feat)
 		feats.remove(best_feat)
 	
 	return best_feat, isLeaf, feats
@@ -110,7 +107,9 @@ def get_best_feat(data, feats) :
 # IN: A list of lists (unsplit data), an int (feature to split data on)
 # OUT: A list of lists of lists (several data lists)
 def performSplitOn(data, feat) :
-	print('splitting on feature ', feat,'...........')
+	# table printing
+	if print_tables : print('splitting on feature ', feat,'...........')
+		
 	# perform split
 	# to use numpy.split, we need the indices of each feature value
 	splits = []
@@ -122,9 +121,13 @@ def performSplitOn(data, feat) :
 #### TRAIN DECISION TREE
 # c is for counting recursive steps
 def trainDecisionTreeOn(data, feats, isLeaf) :
-	print(data)
-	print('features left: ', feats)
-	print('isLeaf:',isLeaf)
+	
+	# table printing
+	if print_tables :
+		print('top of trainDecisionTree call. Data: ')
+		print(data)
+		print('features left: ', feats)
+		print('isLeaf:',isLeaf)
 	best_feat, isLeaf, feats = get_best_feat(data, feats[:])
 	if not isLeaf :
 		splits = performSplitOn(data, best_feat)
@@ -134,13 +137,36 @@ def trainDecisionTreeOn(data, feats, isLeaf) :
 			
 			if isLeaf : leaves += 1
 			if leaves == len(splits) :
-				print('all leaves taken care of')
-				break
+				if print_tables : print('all leaves taken care of')
+				break # is this break necessary?
 	return isLeaf
 
 ######################################################
 ################## MAIN CONTROL STARTS HERE ##########
 ######################################################
+
+# script parameter handling
+print_tables = False
+try :
+	opts, args = getopt.getopt(sys.argv[1:],'h', ['print_tables'])
+	
+	''' # we will allow empty arguments for now
+	if opts == [] and args == [] :
+		print('empty arguments. Use -h for help')
+		sys.exit(2)
+	'''
+except getopt.GetoptError :
+	print('error with arguments passed. Use -h for help')
+	sys.exit(2)
+for opt, arg in opts:
+	if opt == '-h':
+		print 'version_history.py --print_tables'
+		print('--print_tables shows the construction of the tree at the tabular level')
+		sys.exit()
+	elif opt == '--print_tables' :
+		print_tables = True
+
+			  
 # load the file into 2d array
 data_file = open('courseRatings.data')
 data = []
@@ -170,3 +196,6 @@ for example in data :
 # here we go...
 feats = range(num_features) # keep track of which feats have already been used
 isLeaf = trainDecisionTreeOn(data, feats, False)
+
+print('finished.')
+	
