@@ -2,7 +2,7 @@
 
 # Berett Chase Babrich
 # Decision Tree Classifier
-# Last updated 7.18.19
+# Last updated 8.7.19
 
 # NOTES :
 # A homebrewed decision tree classifier based on Daume's first chapter of "machine learning"
@@ -15,6 +15,7 @@ import random
 import os, sys, getopt
 import statistics
 from statistics import mode
+from anytree import Node, RenderTree
 
 ### TO-DO
 # +++ read through data once to grab num_features, num_labels
@@ -120,7 +121,8 @@ def performSplitOn(data, feat) :
 
 #### TRAIN DECISION TREE
 # c is for counting recursive steps
-def trainDecisionTreeOn(data, feats, isLeaf) :
+def trainDecisionTreeOn(data, feats, parent_node) :
+	
 	
 	# table printing
 	if print_tables :
@@ -128,18 +130,23 @@ def trainDecisionTreeOn(data, feats, isLeaf) :
 		print(data)
 		print('features left: ', feats)
 		print('isLeaf:',isLeaf)
+	
 	best_feat, isLeaf, feats = get_best_feat(data, feats[:])
+	
+	# tree construction
+	node = Node(best_feat, parent=parent_node)
+	
 	if not isLeaf :
 		splits = performSplitOn(data, best_feat)
 		leaves = 0
 		for split in splits : 
-			isLeaf = trainDecisionTreeOn(split, feats[:], False)
+			child_node = trainDecisionTreeOn(split, feats[:], node)
+			child_node.parent = node
 			
-			if isLeaf : leaves += 1
-			if leaves == len(splits) :
-				if print_tables : print('all leaves taken care of')
-				break # is this break necessary?
-	return isLeaf
+		if print_tables :
+			print('all leaves taken care of')
+	
+	return node
 
 ######################################################
 ################## MAIN CONTROL STARTS HERE ##########
@@ -195,7 +202,10 @@ for example in data :
 
 # here we go...
 feats = range(num_features) # keep track of which feats have already been used
-isLeaf = trainDecisionTreeOn(data, feats, False)
+root = trainDecisionTreeOn(data, feats, Node("root"))
+
+for pre, fill, node in RenderTree(root):
+    print("%s%s" % (pre, node.name))
 
 print('finished.')
 	
