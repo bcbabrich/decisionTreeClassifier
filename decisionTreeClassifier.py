@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3.6
 
 # Berett Chase Babrich
 # Decision Tree Classifier
@@ -13,8 +13,6 @@ import re
 import numpy as np
 import random
 import os, sys, getopt
-import statistics
-from statistics import mode
 from anytree import Node, RenderTree
 
 ### TO-DO
@@ -29,18 +27,31 @@ from anytree import Node, RenderTree
 # every example has the same number of features
 # the last column is a label
 def get_best_feat(data, feats) :
-	# TODO: guess the most prevalent answer instead of random here
-	# we also do not need to return feats here
-	if len(data) == 0 :
-		if print_tables : print('empty data. Randomly guessing')
+	# I'm sure the time complexity could be improved somehow here
+	if len(data) == 0 : # data IS empty
+		if print_tables : print('data empty. choosing random label')
 		guess = random.choice(label_vals)
-		if print_tables : print('Guess:',guess)
-		return 0, True, []
-	elif len(feats) == 0 :
-		if print_tables : print('no features left. Randomly guessing')
-		guess = random.choice(label_vals)
-		if print_tables : print('Guess:',guess)
-		return 0, True, []
+		if print_tables : print('guess is random: ', guess)
+		return -1, guess, []
+	elif len(feats) == 0 : # data is NOT empty
+		if print_tables : print('features empty')
+		labels = list(data[:,-1])
+
+		label_counts = [0] * len(label_vals)
+
+		for label_unique in label_vals :
+			for label in labels :
+				if label == label_unique :
+					label_counts[label_vals.index(label)] += 1
+		guess = None
+		if all(elem == label_counts[0] for elem in label_counts) :
+			if print_tables : print('same number of all labels')
+			guess = random.choice(label_vals)
+			if print_tables : print('guess is random: ', guess)
+		else :
+			guess = label_vals[label_counts.index(max(label_counts))]
+			if print_tables : print('most frequent label is: ',guess)
+		return -1, guess, []
 	
 	
 	# calculate feature with highest score
@@ -79,30 +90,34 @@ def get_best_feat(data, feats) :
 
 	# check for leaves and special case of all scores being equal
 	# then return highest score
-	isLeaf = False
+	guess = None
 	if all(elem == feat_scores[0] for elem in feat_scores) : # all scores are equal
 		# pick the first feature
 		# this should be randomized in the future
-		best_feat = 0
+		best_feat = random.choice(feats)
 		
 		# table printing
-		if print_tables : print('all scores equal for this data')
+		if print_tables : 
+			print('all scores equal for this data')
+			print('randomly guessing best feature as:',best_feat)
 			
-	elif any(elem == 1.0 for elem in feat_scores ) : # any score is 1
+	elif all(elem == data[:,-1][0] for elem in data[:,-1] ) : # all labels are equal
 		# might need to be careful about doubles vs ints here?
 		# note that this takes the index of the first appearance of 1.0
-		best_feat = feat_scores.index(1.0)
-		isLeaf = True
+		guess = data[:,-1][0]
+		best_feat = -1
 		
 		# table printing
-		if print_tables : print('leaf found. Guess: ', label_vals[np.argmax(np.sum(hist_mat, axis=0))])
+		if print_tables :
+			print('labels unambiguous')
+			print('leaf found. Guess: ', guess)
 		
 	else : # leaf conditions not met, take index of greatest score
 		best_feat = feat_scores.index(max(feat_scores))
 		if print_tables : print('best_feat',best_feat)
 		feats.remove(best_feat)
 	
-	return best_feat, isLeaf, feats
+	return best_feat, guess, feats
 
 #### SPLITTING DATA 
 # IN: A list of lists (unsplit data), an int (feature to split data on)
@@ -120,31 +135,31 @@ def performSplitOn(data, feat) :
 	return splits
 
 #### TRAIN DECISION TREE
-# c is for counting recursive steps
-def trainDecisionTreeOn(data, feats, parent_node) :
+def trainDecisionTreeOn(data, feat_val, feats, parent_node) :
 	
+	best_feat, guess, feats = get_best_feat(data, feats[:])
 	
 	# table printing
 	if print_tables :
-		print('top of trainDecisionTree call. Data: ')
+		print('in trainDecisionTree call, after get_best_feat call. Data: ')
 		print(data)
 		print('features left: ', feats)
-		print('isLeaf:',isLeaf)
-	
-	best_feat, isLeaf, feats = get_best_feat(data, feats[:])
+		print('guess:',guess)
 	
 	# tree construction
-	node = Node(best_feat, parent=parent_node)
-	
-	if not isLeaf :
+	if guess == None : # we are not at a leaf node
+		node = Node(feat_val  + ',' + str(best_feat), parent=parent_node)
+		
 		splits = performSplitOn(data, best_feat)
-		leaves = 0
-		for split in splits : 
-			child_node = trainDecisionTreeOn(split, feats[:], node)
+		
+		for split, feat_val in zip(splits, feature_vals[best_feat]) : 
+			child_node = trainDecisionTreeOn(split, feat_val, feats[:], node)
 			child_node.parent = node
 			
 		if print_tables :
 			print('all leaves taken care of')
+	else : # we are at a leaf node
+		node = Node(feat_val + ',' + guess, parent=parent_node)
 	
 	return node
 
@@ -154,8 +169,9 @@ def trainDecisionTreeOn(data, feats, parent_node) :
 
 # script parameter handling
 print_tables = False
+print_tree = False
 try :
-	opts, args = getopt.getopt(sys.argv[1:],'h', ['print_tables'])
+	opts, args = getopt.getopt(sys.argv[1:],'h', ['print_tables', 'print_tree'])
 	
 	''' # we will allow empty arguments for now
 	if opts == [] and args == [] :
@@ -167,11 +183,13 @@ except getopt.GetoptError :
 	sys.exit(2)
 for opt, arg in opts:
 	if opt == '-h':
-		print 'version_history.py --print_tables'
+		print('version_history.py --print_tables')
 		print('--print_tables shows the construction of the tree at the tabular level')
 		sys.exit()
 	elif opt == '--print_tables' :
 		print_tables = True
+	elif opt == '--print_tree'  :
+		print_tree = True
 
 			  
 # load the file into 2d array
@@ -201,11 +219,12 @@ for example in data :
 		label_vals.append(example[-1])
 
 # here we go...
-feats = range(num_features) # keep track of which feats have already been used
-root = trainDecisionTreeOn(data, feats, Node("root"))
+feats = list(range(num_features)) # keep track of which feats have already been used
+root = trainDecisionTreeOn(data, '-1', feats, Node("root"))
 
-for pre, fill, node in RenderTree(root):
-    print("%s%s" % (pre, node.name))
+if print_tree :
+	for pre, fill, node in RenderTree(root):
+		print("%s%s" % (pre, node.name))
 
 print('finished.')
 	
