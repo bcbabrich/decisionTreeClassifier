@@ -178,7 +178,7 @@ def classify(data, root) :
                     next_node = child
                     break
 
-        prediction = next_node.name[-1]
+        prediction = next_node.name.split(',')[-1]
         preds.append(prediction)
 
     return preds
