@@ -61,11 +61,11 @@ def get_best_feat(data, feats):
 
     # in order to check for leaf cases, we need to store all feature scores
     feat_scores = []
+
     for feature in range(num_features):  # last column is label, not feature
         if feature in feats:
             # create histogram matrix for current feature
-            hist_mat = np.zeros((len(label_vals), len(feature_vals[feature])))
-
+            hist_mat = np.zeros((len(feature_vals[feature]), len(label_vals)))
             # populate the histogram by
             for example in data:
                 label_val = example[-1]
@@ -75,9 +75,9 @@ def get_best_feat(data, feats):
             # sum up the highest value from each label row
             # equivalent to saying "how many would we get right
             # if we always took the most frequent value"
-            argmax_arr = np.argmax(hist_mat, axis=1)
+            argmax_arr = np.argmax(hist_mat, axis=0)
             arange_arr = np.arange(len(label_vals))
-            score_numerator = np.sum(hist_mat[arange_arr, argmax_arr])
+            score_numerator = np.sum(hist_mat[argmax_arr, arange_arr])
 
             # calculate score for current feature
             score_denominator = len(data)
@@ -165,23 +165,23 @@ def trainDecisionTreeOn(data, feat_val, feats, parent_node):
 
     return node
 
+# assume is 2d array
 def classify(data, root) :
+    preds = []
+    for example in data :
+        next_node = root
+        while next_node.name.split(',')[-1] not in label_vals:
+            feat_index = next_node.name.split(',')[-1]
+            val_at_feat_index = example[int(feat_index)]
+            for child in next_node.children:
+                if child.name[0] == val_at_feat_index:
+                    next_node = child
+                    break
 
-    print('example: ', example)
+        prediction = next_node.name[-1]
+        preds.append(prediction)
 
-    next_node = root
-
-    while next_node.name[-1] not in label_vals:
-        feat_index = next_node.name[-1]
-        val_at_feat_index = example[int(feat_index)]
-        for child in next_node.children:
-            if child.name[0] == val_at_feat_index:
-                next_node = child
-                break
-
-    prediction = next_node.name[-1]
-
-    return prediction
+    return preds
 
 ######################################################
 ################## MAIN CONTROL STARTS HERE ##########
@@ -212,7 +212,7 @@ for opt, arg in opts:
         print_tree = True
 
 # load the file into 2d array
-data_file = open('courseRatings.data')
+data_file = open('kr-vs-kp.data')
 data = []
 for line in data_file:
     split_line = re.split(',| |\n', line)
@@ -245,10 +245,10 @@ if print_tree:
     for pre, fill, node in RenderTree(root):
         print("%s%s" % (pre, node.name))
 
-example = ['n', 'y', 'y', 'n', 'y']
 
-pred = classify(example, root)
+preds = classify(data, root)
 
-print('prediction: ',pred)
+print('predictions: ')
+print(preds)
 
 print('finished.')
